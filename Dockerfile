@@ -14,6 +14,6 @@ COPY --from=build /app .
 ENV ASPNETCORE_URLS=http://+:8080
 ENV DATA_DIR=/data
 EXPOSE 8080
-VOLUME ["/data"]
+
 
 ENTRYPOINT ["dotnet", "BoekenAfspraak.Api.dll"]

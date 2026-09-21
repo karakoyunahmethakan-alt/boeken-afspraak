@@ -1,0 +1,216 @@
+(function () {
+  let CONFIG = { slotTimes: [], minBooks: 10, daysAhead: 14 };
+  let days = [];
+  let selectedDayIdx = 0;
+  let selectedTime = null;
+  let availabilityCache = {};
+
+  const daysEl = document.getElementById("days");
+  const slotsEl = document.getElementById("slots");
+  const priceValueEl = document.getElementById("price-value");
+
+  function dateKey(d) {
+    return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+  }
+
+  async function loadConfig() {
+    const res = await fetch("/api/config");
+    CONFIG = await res.json();
+    document.getElementById("hero-min").textContent = CONFIG.minBooks;
+    document.getElementById("min-hint").textContent = "(minimaal " + CONFIG.minBooks + ")";
+    document.getElementById("aantal").min = CONFIG.minBooks;
+
+    const base = new Date(); base.setHours(0,0,0,0);
+    days = [];
+    for (let i = 0; i < CONFIG.daysAhead; i++) {
+      const d = new Date(base); d.setDate(base.getDate() + i); days.push(d);
+    }
+    renderDays();
+    await loadAvailability(days[selectedDayIdx]);
+    renderSlots();
+  }
+
+  async function loadAvailability(d) {
+    const key = dateKey(d);
+    if (availabilityCache[key]) return availabilityCache[key];
+    const res = await fetch("/api/availability?date=" + encodeURIComponent(key));
+    const data = await res.json();
+    availabilityCache[key] = data;
+    return data;
+  }
+
+  function renderDays() {
+    daysEl.innerHTML = "";
+    days.forEach((d, idx) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "day-pill" + (idx === selectedDayIdx ? " active" : "");
+      const wk = d.toLocaleDateString("nl-NL", { weekday: "short" });
+      const dm = d.toLocaleDateString("nl-NL", { day: "numeric", month: "short" });
+      btn.innerHTML = '<span class="d">' + wk + '</span><span>' + dm + '</span>';
+      btn.addEventListener("click", async () => {
+        selectedDayIdx = idx;
+        selectedTime = null;
+        renderDays();
+        await loadAvailability(days[idx]);
+        renderSlots();
+      });
+      daysEl.appendChild(btn);
+    });
+  }
+
+  function renderSlots() {
+    slotsEl.innerHTML = "";
+    const d = days[selectedDayIdx];
+    const data = availabilityCache[dateKey(d)];
+    if (!data) { slotsEl.innerHTML = '<div class="slots-empty">Bezig met laden…</div>'; return; }
+
+    const anyAvailable = data.slots.some(s => s.available);
+    if (!anyAvailable) {
+      slotsEl.innerHTML = '<div class="slots-empty">Deze dag is volgeboekt. Kies een andere dag hierboven.</div>';
+      return;
+    }
+
+    data.slots.forEach(s => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "slot" + (selectedTime === s.time ? " active" : "");
+      btn.textContent = s.time;
+      if (!s.available) {
+        btn.disabled = true;
+      } else {
+        btn.addEventListener("click", () => { selectedTime = s.time; renderSlots(); });
+      }
+      slotsEl.appendChild(btn);
+    });
+  }
+
+  // --- ISBN block ---
+  const useIsbnCheckbox = document.getElementById("use-isbn");
+  const isbnBlock = document.getElementById("isbn-block");
+  const isbnList = document.getElementById("isbn-list");
+  const addIsbnBtn = document.getElementById("add-isbn");
+
+  function addIsbnRow() {
+    const row = document.createElement("div");
+    row.className = "isbn-row";
+    row.innerHTML = '<input type="text" placeholder="ISBN, bijv. 9789021420656" inputmode="numeric">' +
+                     '<button type="button" aria-label="Verwijderen">&times;</button>';
+    row.querySelector("button").addEventListener("click", () => row.remove());
+    isbnList.appendChild(row);
+  }
+
+  useIsbnCheckbox.addEventListener("change", () => {
+    isbnBlock.style.display = useIsbnCheckbox.checked ? "block" : "none";
+    if (useIsbnCheckbox.checked && isbnList.children.length === 0) addIsbnRow();
+  });
+  addIsbnBtn.addEventListener("click", addIsbnRow);
+
+  function collectIsbns() {
+    if (!useIsbnCheckbox.checked) return [];
+    return Array.from(isbnList.querySelectorAll("input"))
+      .map(i => i.value.trim())
+      .filter(v => v.length > 0);
+  }
+
+  // --- Price preview (flat estimate; ISBN pricing is computed server-side on submit) ---
+  function updatePricePreview() {
+    const count = parseInt(document.getElementById("aantal").value, 10) || 0;
+    if (useIsbnCheckbox.checked) {
+      priceValueEl.textContent = "wordt berekend bij versturen (op basis van ISBN's)";
+      return;
+    }
+    const blocks = Math.floor(count / 10);
+    priceValueEl.textContent = "€ " + (blocks * 3.5).toFixed(2).replace(".", ",");
+  }
+  document.getElementById("aantal").addEventListener("input", updatePricePreview);
+  useIsbnCheckbox.addEventListener("change", updatePricePreview);
+
+  // --- Submit ---
+  function setInvalid(id, invalid) {
+    document.getElementById(id).classList.toggle("invalid", invalid);
+  }
+
+  document.getElementById("submit-btn").addEventListener("click", async function () {
+    const naam = document.getElementById("naam").value.trim();
+    const adres = document.getElementById("adres").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const telefoon = document.getElementById("telefoon").value.trim();
+    const aantal = document.getElementById("aantal").value.trim();
+    const soort = document.getElementById("soort").value.trim();
+    const formErr = document.getElementById("form-err");
+    formErr.style.display = "none";
+
+    let ok = true;
+    setInvalid("f-naam", !naam); if (!naam) ok = false;
+    setInvalid("f-adres", !adres); if (!adres) ok = false;
+    const emailOk = /\S+@\S+\.\S+/.test(email);
+    setInvalid("f-email", !emailOk); if (!emailOk) ok = false;
+    const aantalNum = parseInt(aantal, 10);
+    const aantalInvalid = !aantal || isNaN(aantalNum) || aantalNum < CONFIG.minBooks;
+    setInvalid("f-aantal", aantalInvalid); if (aantalInvalid) ok = false;
+
+    if (!selectedTime) {
+      formErr.textContent = "Kies eerst een dag en tijd hierboven.";
+      formErr.style.display = "block";
+      ok = false;
+    }
+    if (!ok) return;
+
+    const submitBtn = document.getElementById("submit-btn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Bezig...";
+
+    const body = {
+      name: naam, address: adres, email, phone: telefoon || null,
+      bookCount: aantalNum, bookType: soort || null,
+      date: dateKey(days[selectedDayIdx]), timeSlot: selectedTime,
+      isbns: collectIsbns()
+    };
+
+    try {
+      const res = await fetch("/api/appointments", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+      });
+
+      if (res.status === 409) {
+        formErr.textContent = "Dit tijdstip is net bezet geraakt. Kies een ander moment.";
+        formErr.style.display = "block";
+        delete availabilityCache[dateKey(days[selectedDayIdx])];
+        await loadAvailability(days[selectedDayIdx]);
+        selectedTime = null;
+        renderSlots();
+        return;
+      }
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        formErr.textContent = err.error || "Er ging iets mis. Probeer het opnieuw.";
+        formErr.style.display = "block";
+        return;
+      }
+
+      const result = await res.json();
+
+      const photoInput = document.getElementById("foto");
+      if (photoInput.files.length > 0) {
+        const fd = new FormData();
+        Array.from(photoInput.files).slice(0, 5).forEach(f => fd.append("files", f));
+        await fetch(`/api/appointments/manage/${result.manageToken}/photos`, { method: "POST", body: fd }).catch(() => {});
+      }
+
+      document.getElementById("confirm-text").textContent =
+        `Uw afspraak staat gepland voor ${days[selectedDayIdx].toLocaleDateString("nl-NL", { weekday: "long", day: "numeric", month: "long" })} om ${selectedTime}. Geschatte prijsindicatie: € ${result.estimatedPriceEuro.toFixed(2).replace(".", ",")}.`;
+      document.getElementById("manage-link").href = `/beheer.html?token=${result.manageToken}`;
+      document.getElementById("confirm").style.display = "block";
+      document.getElementById("confirm").scrollIntoView({ behavior: "smooth", block: "start" });
+      submitBtn.textContent = "Aangevraagd";
+    } catch (e) {
+      formErr.textContent = "Kon geen verbinding maken. Probeer het opnieuw.";
+      formErr.style.display = "block";
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Afspraak aanvragen";
+    }
+  });
+
+  loadConfig();
+})();

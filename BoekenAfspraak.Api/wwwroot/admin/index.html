@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Beheer — afspraken</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<style>
+  main.wide { max-width: 920px; }
+  .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .toolbar select { width: auto; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-inner">
+    <h1>Beheer</h1>
+    <p>Overzicht van alle aanvragen.</p>
+  </div>
+</div>
+
+<main class="wide">
+  <div class="card" id="login-card">
+    <h2>Inloggen</h2>
+    <div class="field" id="f-email">
+      <label for="email">E-mail</label>
+      <input type="email" id="email" autocomplete="username">
+    </div>
+    <div class="field" id="f-password">
+      <label for="password">Wachtwoord</label>
+      <input type="password" id="password" autocomplete="current-password">
+    </div>
+    <div class="form-err" id="login-err"></div>
+    <button class="submit-btn" id="login-btn">Inloggen</button>
+  </div>
+
+  <div class="card" id="panel-card" style="display:none;">
+    <div class="toolbar">
+      <h2 style="margin-right:auto;">Afspraken</h2>
+      <select id="status-filter">
+        <option value="">Alle statussen</option>
+        <option value="Confirmed">Bevestigd</option>
+        <option value="Cancelled">Geannuleerd</option>
+      </select>
+      <button class="btn-secondary" id="export-btn">Exporteer CSV</button>
+      <button class="btn-secondary" id="logout-btn">Uitloggen</button>
+    </div>
+    <div class="table-wrap">
+      <table class="admin-table" id="table">
+        <thead>
+          <tr>
+            <th>Datum</th><th>Tijd</th><th>Status</th><th>Naam</th><th>Adres</th>
+            <th>E-mail</th><th>Telefoon</th><th>Aantal</th><th>Prijs</th><th>Verzet</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script src="/admin/admin.js"></script>
+</body>
+</html>

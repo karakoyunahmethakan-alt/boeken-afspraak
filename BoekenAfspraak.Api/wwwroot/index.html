@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Boeken ophalen — afspraak maken</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-inner">
+    <h1>Geef uw boeken een nieuw hoofdstuk</h1>
+    <p>Ik koop tweedehands boeken op bij mensen in de buurt. Heeft u er minimaal <span id="hero-min">10</span> staan? Kies hieronder een moment en ik kom langs.</p>
+    <div class="rule">Prijsindicatie meteen zichtbaar — definitieve prijs bepalen we samen ter plekke</div>
+  </div>
+</div>
+
+<main>
+  <div class="card">
+    <h2>Gegevens</h2>
+    <p class="section-note">Dit wordt rechtstreeks doorgestuurd. U ontvangt direct een bevestiging per e-mail met een link om te wijzigen of te annuleren.</p>
+
+    <div class="field" id="f-naam">
+      <label for="naam">Naam</label>
+      <input type="text" id="naam" autocomplete="name">
+      <div class="err">Vul uw naam in.</div>
+    </div>
+
+    <div class="field" id="f-adres">
+      <label for="adres">Adres <span class="hint">(straat, huisnummer, plaats)</span></label>
+      <input type="text" id="adres" autocomplete="street-address">
+      <div class="err">Vul een adres in.</div>
+    </div>
+
+    <div class="row2">
+      <div class="field" id="f-email">
+        <label for="email">E-mail</label>
+        <input type="email" id="email" autocomplete="email">
+        <div class="err">Vul een geldig e-mailadres in — hier komt uw bevestiging.</div>
+      </div>
+      <div class="field" id="f-telefoon">
+        <label for="telefoon">Telefoon <span class="hint">(optioneel)</span></label>
+        <input type="tel" id="telefoon" autocomplete="tel">
+      </div>
+    </div>
+
+    <div class="field" id="f-aantal">
+      <label for="aantal">Aantal boeken <span class="hint" id="min-hint">(minimaal 10)</span></label>
+      <input type="number" id="aantal" min="10" inputmode="numeric">
+      <div class="err">Vanaf het minimum kan ik langskomen.</div>
+    </div>
+
+    <div class="field" id="f-soort">
+      <label for="soort">Soort boeken <span class="hint">(optioneel)</span></label>
+      <input type="text" id="soort" placeholder="bijv. romans, kinderboeken, kookboeken">
+    </div>
+
+    <div class="field">
+      <label class="hint" style="display:flex;align-items:center;gap:8px;font-weight:600;color:var(--ink);">
+        <input type="checkbox" id="use-isbn" style="width:16px;height:16px;">
+        Ik weet de ISBN's — geef een nauwkeurigere schatting per boek
+      </label>
+      <div id="isbn-block" style="display:none;margin-top:10px;">
+        <div id="isbn-list"></div>
+        <button type="button" class="btn-secondary" id="add-isbn" style="margin-top:6px;">+ ISBN toevoegen</button>
+        <p class="section-note" style="margin-top:8px;">Onbekende of niet-gevonden ISBN's krijgen een standaardschatting.</p>
+      </div>
+    </div>
+
+    <div class="field" id="f-foto">
+      <label for="foto">Foto's van de boeken <span class="hint">(optioneel, max 5)</span></label>
+      <input type="file" id="foto" accept="image/png,image/jpeg,image/webp" multiple>
+    </div>
+
+    <div class="price-box" id="price-box">
+      Geschatte prijsindicatie: <strong id="price-value">€ 0,00</strong>
+    </div>
+
+    <h2 style="margin-top:22px;">Dag &amp; tijd</h2>
+    <p class="section-note">Een doorgestreept tijdstip is al bezet.</p>
+
+    <div class="days" id="days"></div>
+    <div class="slots" id="slots"></div>
+
+    <div class="form-err" id="form-err"></div>
+    <button class="submit-btn" id="submit-btn">Afspraak aanvragen</button>
+
+    <div class="confirm" id="confirm">
+      <h3>Afspraak bevestigd</h3>
+      <p id="confirm-text"></p>
+      <p class="section-note">Wijzigen of annuleren kan altijd via de link in uw bevestigingsmail, of <a id="manage-link" href="#">hier</a>.</p>
+    </div>
+  </div>
+
+  <footer>
+    Reactie meestal binnen 24 uur.
+  </footer>
+</main>
+
+<script src="/booking.js"></script>
+</body>
+</html>

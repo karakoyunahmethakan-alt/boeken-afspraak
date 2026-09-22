@@ -20,13 +20,30 @@ Directory.CreateDirectory(Path.Combine(dataDir, "uploads"));
 
 builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("App"));
 builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("Smtp"));
-builder.Services.Configure<BolApiOptions>(builder.Configuration.GetSection("BolApi"));
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
+
+// Railway's Raw Editor can leave stray quotes/whitespace around a pasted
+// value, which silently breaks SMTP auth (wrong user/password) without any
+// obvious error. Strip them right after binding so every consumer of these
+// options gets clean values.
+static string CleanConfigValue(string value) => value.Trim('"', ' ');
+builder.Services.PostConfigure<SmtpOptions>(o =>
+{
+    o.Host = CleanConfigValue(o.Host);
+    o.User = CleanConfigValue(o.User);
+    o.Password = CleanConfigValue(o.Password);
+    o.FromName = CleanConfigValue(o.FromName);
+});
+builder.Services.PostConfigure<AppOptions>(o =>
+{
+    o.OwnerEmail = CleanConfigValue(o.OwnerEmail);
+    o.PublicBaseUrl = CleanConfigValue(o.PublicBaseUrl);
+    o.TimeZoneId = CleanConfigValue(o.TimeZoneId);
+});
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite($"Data Source={Path.Combine(dataDir, "afspraken.db")}"));
 
-builder.Services.AddHttpClient<BolPriceService>();
 builder.Services.AddSingleton<PricingService>();
 builder.Services.AddSingleton<EmailService>();
 builder.Services.AddSingleton<JwtTokenService>();
@@ -121,7 +138,6 @@ app.MapPost("/api/appointments", async (
     CreateAppointmentRequest req,
     AppDbContext db,
     PricingService pricing,
-    BolPriceService bolPrices,
     EmailService email) =>
 {
     if (string.IsNullOrWhiteSpace(req.Name) || string.IsNullOrWhiteSpace(req.Address) || string.IsNullOrWhiteSpace(req.Email))
@@ -149,28 +165,7 @@ app.MapPost("/api/appointments", async (
         Status = AppointmentStatus.Confirmed
     };
 
-    var bookPriceDtos = new List<BookPriceDto>();
-    var isbns = (req.Isbns ?? new()).Where(i => !string.IsNullOrWhiteSpace(i)).Select(i => i.Trim()).ToList();
-
-    if (isbns.Count > 0)
-    {
-        appointment.PricedByIsbn = true;
-        decimal total = 0;
-        foreach (var isbn in isbns)
-        {
-            var sourcePrice = await bolPrices.GetSecondHandPriceAsync(isbn);
-            var offer = pricing.CalculateIsbnOffer(sourcePrice);
-            total += offer;
-            appointment.Books.Add(new AppointmentBook { Isbn = isbn, BolSecondHandPrice = sourcePrice, EstimatedOffer = offer });
-            bookPriceDtos.Add(new BookPriceDto(isbn, sourcePrice, offer));
-        }
-        appointment.EstimatedPriceEuro = total;
-    }
-    else
-    {
-        appointment.PricedByIsbn = false;
-        appointment.EstimatedPriceEuro = pricing.CalculateFlatEstimate(req.BookCount);
-    }
+    appointment.EstimatedPriceEuro = pricing.CalculateFlatEstimate(req.BookCount);
 
     db.Appointments.Add(appointment);
     try
@@ -192,7 +187,7 @@ app.MapPost("/api/appointments", async (
 
     return Results.Created($"/api/appointments/manage/{appointment.ManageToken}",
         new AppointmentResultDto(appointment.ManageToken, appointment.Date.ToString("yyyy-MM-dd"), appointment.TimeSlot,
-            appointment.EstimatedPriceEuro, appointment.PricedByIsbn, bookPriceDtos));
+            appointment.EstimatedPriceEuro));
 });
 
 // Optional photo upload, done as a follow-up call against the manage token.
@@ -241,8 +236,7 @@ app.MapGet("/api/appointments/manage/{token:guid}", async (Guid token, AppDbCont
         date = a.Date.ToString("yyyy-MM-dd"),
         a.TimeSlot,
         status = a.Status.ToString(),
-        a.EstimatedPriceEuro,
-        a.PricedByIsbn
+        a.EstimatedPriceEuro
     });
 });
 
@@ -322,7 +316,7 @@ admin.MapGet("/appointments", async (AppDbContext db, string? status) =>
     return Results.Ok(list.Select(a => new AdminAppointmentDto(
         a.Id, a.Name, a.Address, a.Email, a.Phone, a.BookCount, a.BookType,
         a.Date.ToString("yyyy-MM-dd"), a.TimeSlot, a.Status.ToString(),
-        a.EstimatedPriceEuro, a.PricedByIsbn,
+        a.EstimatedPriceEuro,
         a.OriginalDate?.ToString("yyyy-MM-dd"), a.OriginalTimeSlot, a.RescheduleCount, a.CreatedAtUtc)));
 });
 
@@ -349,5 +343,14 @@ admin.MapGet("/appointments/export.csv", async (AppDbContext db) =>
     var bytes = CsvExportService.BuildAppointmentsCsv(all);
     return Results.File(bytes, "text/csv", $"afspraken-{DateTime.UtcNow:yyyyMMdd}.csv");
 });
+
+// TEMP DEBUG: confirm the SMTP environment variables actually made it into
+// the app's configuration (Password is deliberately never logged).
+var smtpOpts = app.Services.GetRequiredService<IOptions<SmtpOptions>>().Value;
+app.Logger.LogInformation(
+    "SMTP config check — Host: {HostStatus}, Port: {Port}, User: {UserStatus}",
+    string.IsNullOrWhiteSpace(smtpOpts.Host) ? "LEEG" : smtpOpts.Host,
+    smtpOpts.Port,
+    string.IsNullOrWhiteSpace(smtpOpts.User) ? "LEEG" : smtpOpts.User);
 
 app.Run();

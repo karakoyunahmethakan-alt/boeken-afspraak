@@ -8,7 +8,6 @@ public class AppDbContext : DbContext
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     public DbSet<Appointment> Appointments => Set<Appointment>();
-    public DbSet<AppointmentBook> AppointmentBooks => Set<AppointmentBook>();
     public DbSet<AdminUser> AdminUsers => Set<AdminUser>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -24,12 +23,6 @@ public class AppDbContext : DbContext
             .HasIndex(a => new { a.Date, a.TimeSlot })
             .IsUnique()
             .HasFilter("\"Status\" = 0");
-
-        modelBuilder.Entity<AppointmentBook>()
-            .HasOne(b => b.Appointment)
-            .WithMany(a => a.Books)
-            .HasForeignKey(b => b.AppointmentId)
-            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<AdminUser>()
             .HasIndex(u => u.Email)

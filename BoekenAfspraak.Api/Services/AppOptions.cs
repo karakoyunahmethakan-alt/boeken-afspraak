@@ -33,17 +33,6 @@ public class SmtpOptions
     public string FromName { get; set; } = "Boeken ophalen";
 }
 
-public class BolApiOptions
-{
-    public string ClientId { get; set; } = "";
-    public string ClientSecret { get; set; } = "";
-    public string TokenUrl { get; set; } = "https://login.bol.com/token";
-    // NOTE: verify this against the current Bol.com Retailer/Open API docs for
-    // your account before relying on it — see README "Bol.com integratie".
-    public string OffersByEanUrlTemplate { get; set; } = "https://api.bol.com/retailer/products/{0}/offers";
-    public bool Enabled { get; set; } = true;
-}
-
 public class JwtOptions
 {
     public string SigningKey { get; set; } = "";

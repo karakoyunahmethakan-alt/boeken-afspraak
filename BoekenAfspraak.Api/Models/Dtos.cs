@@ -10,19 +10,14 @@ public record CreateAppointmentRequest(
     int BookCount,
     string? BookType,
     string Date,              // "yyyy-MM-dd"
-    string TimeSlot,          // "18:24"
-    List<string>? Isbns       // null/empty => flat per-10-books pricing
+    string TimeSlot           // "18:24"
 );
-
-public record BookPriceDto(string Isbn, decimal? BolSecondHandPrice, decimal EstimatedOffer);
 
 public record AppointmentResultDto(
     Guid ManageToken,
     string Date,
     string TimeSlot,
-    decimal EstimatedPriceEuro,
-    bool PricedByIsbn,
-    List<BookPriceDto> BookPrices
+    decimal EstimatedPriceEuro
 );
 
 public record RescheduleRequest(string NewDate, string NewTimeSlot);
@@ -44,7 +39,6 @@ public record AdminAppointmentDto(
     string TimeSlot,
     string Status,
     decimal EstimatedPriceEuro,
-    bool PricedByIsbn,
     string? OriginalDate,
     string? OriginalTimeSlot,
     int RescheduleCount,

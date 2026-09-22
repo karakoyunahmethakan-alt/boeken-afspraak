@@ -9,7 +9,7 @@ public static class CsvExportService
     public static byte[] BuildAppointmentsCsv(IEnumerable<Appointment> appointments)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("Id;Datum;Tijd;Status;Naam;Adres;E-mail;Telefoon;AantalBoeken;Soort;GeschatePrijs;OpISBN;OorspronkelijkeDatum;OorspronkelijkeTijd;AantalKeerVerzet;Aangemaakt");
+        sb.AppendLine("Id;Datum;Tijd;Status;Naam;Adres;E-mail;Telefoon;AantalBoeken;Soort;GeschatePrijs;OorspronkelijkeDatum;OorspronkelijkeTijd;AantalKeerVerzet;Aangemaakt");
 
         string Esc(string? s) => (s ?? "").Replace(";", ",").Replace("\r", " ").Replace("\n", " ");
 
@@ -28,7 +28,6 @@ public static class CsvExportService
                 a.BookCount.ToString(CultureInfo.InvariantCulture),
                 Esc(a.BookType),
                 a.EstimatedPriceEuro.ToString("0.00", CultureInfo.InvariantCulture),
-                a.PricedByIsbn ? "Ja" : "Nee",
                 a.OriginalDate?.ToString("yyyy-MM-dd") ?? "",
                 a.OriginalTimeSlot ?? "",
                 a.RescheduleCount.ToString(CultureInfo.InvariantCulture),

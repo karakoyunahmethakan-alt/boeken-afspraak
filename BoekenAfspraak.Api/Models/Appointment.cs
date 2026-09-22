@@ -26,10 +26,10 @@ public class Appointment
     // /data/uploads on the persistent volume). Null/empty if none uploaded.
     public string? PhotoFileNames { get; set; }
 
-    // Pricing snapshot at time of booking — informational only, the real
-    // price is agreed in person. Kept on the row so history/CSV export
-    // reflects what the customer was shown, even if tiers change later.
-    public bool PricedByIsbn { get; set; }
+    // Pricing snapshot at time of booking (flat scale: €3,50 per 10 boeken) —
+    // informational only, the real price is agreed in person. Kept on the
+    // row so history/CSV export reflects what the customer was shown, even
+    // if the scale changes later.
     public decimal EstimatedPriceEuro { get; set; }
 
     public DateOnly Date { get; set; }
@@ -51,19 +51,4 @@ public class Appointment
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? CancelledAtUtc { get; set; }
-
-    public ICollection<AppointmentBook> Books { get; set; } = new List<AppointmentBook>();
-}
-
-// One ISBN entered by the customer, with the Bol.com-derived estimate for
-// that single book. Only populated when the customer chose the ISBN path.
-public class AppointmentBook
-{
-    public int Id { get; set; }
-    public int AppointmentId { get; set; }
-    public Appointment? Appointment { get; set; }
-
-    public string Isbn { get; set; } = "";
-    public decimal? BolSecondHandPrice { get; set; } // null if lookup failed/not found
-    public decimal EstimatedOffer { get; set; }
 }

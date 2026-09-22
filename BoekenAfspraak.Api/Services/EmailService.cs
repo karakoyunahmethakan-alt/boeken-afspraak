@@ -29,7 +29,7 @@ public class EmailService
             E-mail: {a.Email}
             Aantal boeken: {a.BookCount}
             Soort boeken: {a.BookType ?? "-"}
-            Geschatte prijsindicatie: € {a.EstimatedPriceEuro:0.00} ({(a.PricedByIsbn ? "op basis van ISBN-opzoeking" : "vaste schaal")})
+            Geschatte prijsindicatie: € {a.EstimatedPriceEuro:0.00} (vaste schaal)
             Datum: {a.Date:dd-MM-yyyy}
             Tijd: {a.TimeSlot}
 
@@ -125,6 +125,10 @@ public class EmailService
             // A failed email should never break the booking flow itself —
             // the appointment is already safely stored in the database.
             _logger.LogError(ex, "Failed to send email to {To}", to);
+
+            // TEMP DEBUG: also write the full exception (with stack trace) to
+            // the console so it's easy to spot in Railway's deploy logs.
+            Console.WriteLine($"[EmailService] Failed to send email to {to} ({subject}): {ex}");
         }
     }
 }

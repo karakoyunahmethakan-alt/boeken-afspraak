@@ -85,46 +85,13 @@
     });
   }
 
-  // --- ISBN block ---
-  const useIsbnCheckbox = document.getElementById("use-isbn");
-  const isbnBlock = document.getElementById("isbn-block");
-  const isbnList = document.getElementById("isbn-list");
-  const addIsbnBtn = document.getElementById("add-isbn");
-
-  function addIsbnRow() {
-    const row = document.createElement("div");
-    row.className = "isbn-row";
-    row.innerHTML = '<input type="text" placeholder="ISBN, bijv. 9789021420656" inputmode="numeric">' +
-                     '<button type="button" aria-label="Verwijderen">&times;</button>';
-    row.querySelector("button").addEventListener("click", () => row.remove());
-    isbnList.appendChild(row);
-  }
-
-  useIsbnCheckbox.addEventListener("change", () => {
-    isbnBlock.style.display = useIsbnCheckbox.checked ? "block" : "none";
-    if (useIsbnCheckbox.checked && isbnList.children.length === 0) addIsbnRow();
-  });
-  addIsbnBtn.addEventListener("click", addIsbnRow);
-
-  function collectIsbns() {
-    if (!useIsbnCheckbox.checked) return [];
-    return Array.from(isbnList.querySelectorAll("input"))
-      .map(i => i.value.trim())
-      .filter(v => v.length > 0);
-  }
-
-  // --- Price preview (flat estimate; ISBN pricing is computed server-side on submit) ---
+  // --- Price preview (flat estimate) ---
   function updatePricePreview() {
     const count = parseInt(document.getElementById("aantal").value, 10) || 0;
-    if (useIsbnCheckbox.checked) {
-      priceValueEl.textContent = "wordt berekend bij versturen (op basis van ISBN's)";
-      return;
-    }
     const blocks = Math.floor(count / 10);
     priceValueEl.textContent = "€ " + (blocks * 3.5).toFixed(2).replace(".", ",");
   }
   document.getElementById("aantal").addEventListener("input", updatePricePreview);
-  useIsbnCheckbox.addEventListener("change", updatePricePreview);
 
   // --- Submit ---
   function setInvalid(id, invalid) {
@@ -164,8 +131,7 @@
     const body = {
       name: naam, address: adres, email, phone: telefoon || null,
       bookCount: aantalNum, bookType: soort || null,
-      date: dateKey(days[selectedDayIdx]), timeSlot: selectedTime,
-      isbns: collectIsbns()
+      date: dateKey(days[selectedDayIdx]), timeSlot: selectedTime
     };
 
     try {

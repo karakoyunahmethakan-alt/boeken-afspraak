@@ -32,10 +32,27 @@
       <div class="err">Vul uw naam in.</div>
     </div>
 
-    <div class="field" id="f-adres">
-      <label for="adres">Adres <span class="hint">(straat, huisnummer, plaats)</span></label>
-      <input type="text" id="adres" autocomplete="street-address">
-      <div class="err">Vul een adres in.</div>
+    <div class="row2">
+      <div class="field" id="f-postcode">
+        <label for="postcode">Postcode</label>
+        <input type="text" id="postcode" placeholder="1234 AB" autocomplete="postal-code" maxlength="7">
+        <div class="err">Vul een geldige postcode in (bijv. 1234 AB).</div>
+      </div>
+      <div class="field" id="f-huisnummer">
+        <label for="huisnummer">Huisnummer</label>
+        <input type="text" id="huisnummer" placeholder="12 of 12A" autocomplete="off">
+        <div class="err">Vul uw huisnummer in.</div>
+      </div>
+    </div>
+    <div class="field" id="f-adres-resultaat">
+      <label>Adres</label>
+      <div id="adres-gevonden" class="price-box" style="display:none;"></div>
+      <div id="adres-niet-gevonden" class="section-note" style="display:none;color:var(--error);">
+        Adres niet automatisch gevonden. Vul het hieronder handmatig in.
+      </div>
+      <input type="text" id="adres-handmatig" placeholder="Straatnaam, huisnummer, plaats" style="display:none;">
+      <input type="hidden" id="adres-final">
+      <div class="err" id="adres-err">Vul een adres in.</div>
     </div>
 
     <div class="row2">

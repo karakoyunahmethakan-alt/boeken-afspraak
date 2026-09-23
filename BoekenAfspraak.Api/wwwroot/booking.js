@@ -104,9 +104,78 @@
     document.getElementById(id).classList.toggle("invalid", invalid);
   }
 
+  // --- Address lookup (PDOK Locatieserver, free, no key, CORS-enabled) ---
+  const postcodeEl = document.getElementById("postcode");
+  const huisnummerEl = document.getElementById("huisnummer");
+  const adresGevondenEl = document.getElementById("adres-gevonden");
+  const adresNietGevondenEl = document.getElementById("adres-niet-gevonden");
+  const adresHandmatigEl = document.getElementById("adres-handmatig");
+  const adresFinalEl = document.getElementById("adres-final");
+
+  function normalizePostcode(raw) {
+    return raw.replace(/\s+/g, "").toUpperCase();
+  }
+  function isValidPostcode(normalized) {
+    return /^\d{4}[A-Z]{2}$/.test(normalized);
+  }
+
+  function showNotFound() {
+    adresGevondenEl.style.display = "none";
+    adresNietGevondenEl.style.display = "block";
+    adresHandmatigEl.style.display = "block";
+    adresFinalEl.value = adresHandmatigEl.value.trim();
+  }
+  function showFound(weergavenaam) {
+    adresGevondenEl.textContent = weergavenaam;
+    adresGevondenEl.style.display = "block";
+    adresNietGevondenEl.style.display = "none";
+    adresHandmatigEl.style.display = "none";
+    adresFinalEl.value = weergavenaam;
+  }
+  function resetAddressResult() {
+    adresGevondenEl.style.display = "none";
+    adresNietGevondenEl.style.display = "none";
+    adresHandmatigEl.style.display = "none";
+    adresFinalEl.value = "";
+  }
+
+  let addressLookupTimer = null;
+  async function lookupAddress() {
+    const postcode = normalizePostcode(postcodeEl.value);
+    const huisnummer = huisnummerEl.value.trim();
+    if (!isValidPostcode(postcode) || !huisnummer) {
+      resetAddressResult();
+      return;
+    }
+    try {
+      const url = "https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=" +
+        encodeURIComponent(postcode + " " + huisnummer) + "&fq=type:adres&rows=1";
+      const res = await fetch(url);
+      if (!res.ok) { showNotFound(); return; }
+      const data = await res.json();
+      const doc = data && data.response && data.response.docs && data.response.docs[0];
+      if (doc && doc.weergavenaam) {
+        showFound(doc.weergavenaam);
+      } else {
+        showNotFound();
+      }
+    } catch (e) {
+      showNotFound();
+    }
+  }
+  function scheduleAddressLookup() {
+    clearTimeout(addressLookupTimer);
+    addressLookupTimer = setTimeout(lookupAddress, 400);
+  }
+  postcodeEl.addEventListener("input", scheduleAddressLookup);
+  huisnummerEl.addEventListener("input", scheduleAddressLookup);
+  adresHandmatigEl.addEventListener("input", () => {
+    adresFinalEl.value = adresHandmatigEl.value.trim();
+  });
+
   document.getElementById("submit-btn").addEventListener("click", async function () {
     const naam = document.getElementById("naam").value.trim();
-    const adres = document.getElementById("adres").value.trim();
+    const adres = document.getElementById("adres-final").value.trim();
     const email = document.getElementById("email").value.trim();
     const telefoon = document.getElementById("telefoon").value.trim();
     const aantal = document.getElementById("aantal").value.trim();
@@ -116,7 +185,7 @@
 
     let ok = true;
     setInvalid("f-naam", !naam); if (!naam) ok = false;
-    setInvalid("f-adres", !adres); if (!adres) ok = false;
+    setInvalid("f-adres-resultaat", !adres); if (!adres) ok = false;
     const emailOk = /\S+@\S+\.\S+/.test(email);
     setInvalid("f-email", !emailOk); if (!emailOk) ok = false;
     const aantalNum = parseInt(aantal, 10);

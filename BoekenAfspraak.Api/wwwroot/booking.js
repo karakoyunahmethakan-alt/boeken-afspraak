@@ -206,7 +206,8 @@
     const body = {
       name: naam, address: adres, email, phone: telefoon || null,
       bookCount: aantalNum, bookType: soort || null,
-      date: dateKey(days[selectedDayIdx]), timeSlot: selectedTime
+      date: dateKey(days[selectedDayIdx]), timeSlot: selectedTime,
+      honeypot: document.getElementById("website").value
     };
 
     try {

@@ -83,8 +83,64 @@
         });
         tr.lastElementChild.appendChild(btn);
       }
+      if (a.photoFileNames && a.photoFileNames.length > 0) {
+        const photoBtn = document.createElement("button");
+        photoBtn.className = "btn-secondary";
+        photoBtn.style.marginLeft = "6px";
+        photoBtn.textContent = `Foto's (${a.photoFileNames.length})`;
+        photoBtn.addEventListener("click", () => showPhotos(a.id, a.photoFileNames));
+        tr.lastElementChild.appendChild(photoBtn);
+      }
       tbody.appendChild(tr);
     });
+  }
+
+  // Photos live behind an admin-only endpoint, so they're fetched with the
+  // Authorization header (via api()) and shown as blob object URLs — the
+  // JWT never ends up in an <img src> or address bar.
+  async function showPhotos(appointmentId, fileNames) {
+    const overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;";
+    const box = document.createElement("div");
+    box.style.cssText = "background:var(--paper);border-radius:10px;padding:20px;max-width:90vw;max-height:90vh;overflow:auto;";
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "btn-secondary";
+    closeBtn.textContent = "Sluiten";
+    closeBtn.style.marginBottom = "12px";
+    const objectUrls = [];
+    function close() {
+      objectUrls.forEach(u => URL.revokeObjectURL(u));
+      overlay.remove();
+    }
+    closeBtn.addEventListener("click", close);
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+    box.appendChild(closeBtn);
+
+    const grid = document.createElement("div");
+    grid.style.cssText = "display:flex;flex-wrap:wrap;gap:12px;";
+    box.appendChild(grid);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    for (const fileName of fileNames) {
+      try {
+        const res = await api(`/api/admin/appointments/${appointmentId}/photos/${encodeURIComponent(fileName)}`);
+        if (!res.ok) continue;
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        objectUrls.push(url);
+        const link = document.createElement("a");
+        link.href = url;
+        link.target = "_blank";
+        const img = document.createElement("img");
+        img.src = url;
+        img.style.cssText = "max-width:220px;max-height:220px;border-radius:8px;display:block;";
+        link.appendChild(img);
+        grid.appendChild(link);
+      } catch (e) {
+        // Best-effort: skip a photo that failed to load.
+      }
+    }
   }
 
   function escapeHtml(s) {

@@ -10,7 +10,8 @@ public record CreateAppointmentRequest(
     int BookCount,
     string? BookType,
     string Date,              // "yyyy-MM-dd"
-    string TimeSlot           // "18:24"
+    string TimeSlot,          // "18:24"
+    string? Honeypot = null   // must stay empty — real users never see this field
 );
 
 public record AppointmentResultDto(
@@ -42,5 +43,6 @@ public record AdminAppointmentDto(
     string? OriginalDate,
     string? OriginalTimeSlot,
     int RescheduleCount,
-    DateTime CreatedAtUtc
+    DateTime CreatedAtUtc,
+    string[] PhotoFileNames
 );

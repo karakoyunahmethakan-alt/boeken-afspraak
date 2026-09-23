@@ -1,7 +1,9 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Options;
@@ -48,6 +50,33 @@ builder.Services.AddSingleton<PricingService>();
 builder.Services.AddHttpClient<EmailService>();
 builder.Services.AddSingleton<JwtTokenService>();
 builder.Services.AddHostedService<DataRetentionService>();
+
+// Anti-spam: limits how many booking attempts a single IP can make. The
+// permit limit/window are configurable so tests can raise them for
+// unrelated booking scenarios while exercising the real, low value
+// separately (see appsettings.json "RateLimit").
+var bookingRateLimitPermitLimit = builder.Configuration.GetValue("RateLimit:BookingPermitLimit", 5);
+var bookingRateLimitWindowMinutes = builder.Configuration.GetValue("RateLimit:BookingWindowMinutes", 10);
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy("booking", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = bookingRateLimitPermitLimit,
+                Window = TimeSpan.FromMinutes(bookingRateLimitWindowMinutes),
+                QueueLimit = 0
+            }));
+
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsync(
+            "{\"error\":\"Te veel pogingen, probeer het over een paar minuten opnieuw.\"}", token);
+    };
+});
 
 var jwtSigningKey = builder.Configuration["Jwt:SigningKey"];
 if (string.IsNullOrWhiteSpace(jwtSigningKey))
@@ -105,6 +134,7 @@ using (var scope = app.Services.CreateScope())
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -142,6 +172,12 @@ app.MapPost("/api/appointments", async (
     PricingService pricing,
     EmailService email) =>
 {
+    // Honeypot: real users never see or fill this field, so any non-empty
+    // value marks the request as a bot. Fake a normal success without
+    // persisting anything, so the bot doesn't learn it was blocked.
+    if (!string.IsNullOrWhiteSpace(req.Honeypot))
+        return Results.Ok(new { success = true });
+
     if (string.IsNullOrWhiteSpace(req.Name) || string.IsNullOrWhiteSpace(req.Address) || string.IsNullOrWhiteSpace(req.Email))
         return Results.BadRequest(new { error = "Naam, adres en e-mail zijn verplicht." });
     if (!System.Text.RegularExpressions.Regex.IsMatch(req.Email, @"^\S+@\S+\.\S+$"))
@@ -208,7 +244,7 @@ app.MapPost("/api/appointments", async (
     return Results.Created($"/api/appointments/manage/{appointment.ManageToken}",
         new AppointmentResultDto(appointment.ManageToken, appointment.Date.ToString("yyyy-MM-dd"), appointment.TimeSlot,
             appointment.EstimatedPriceEuro));
-});
+}).RequireRateLimiting("booking");
 
 // Optional photo upload, done as a follow-up call against the manage token.
 app.MapPost("/api/appointments/manage/{token:guid}/photos", async (Guid token, HttpRequest http, AppDbContext db) =>
@@ -359,7 +395,8 @@ admin.MapGet("/appointments", async (AppDbContext db, string? status) =>
         a.Id, a.Name, a.Address, a.Email, a.Phone, a.BookCount, a.BookType,
         a.Date.ToString("yyyy-MM-dd"), a.TimeSlot, a.Status.ToString(),
         a.EstimatedPriceEuro,
-        a.OriginalDate?.ToString("yyyy-MM-dd"), a.OriginalTimeSlot, a.RescheduleCount, a.CreatedAtUtc)));
+        a.OriginalDate?.ToString("yyyy-MM-dd"), a.OriginalTimeSlot, a.RescheduleCount, a.CreatedAtUtc,
+        (a.PhotoFileNames ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries))));
 });
 
 admin.MapPost("/appointments/{id:int}/cancel", async (int id, AppDbContext db, EmailService email) =>
@@ -395,6 +432,32 @@ admin.MapGet("/appointments/export.csv", async (AppDbContext db) =>
     var all = await db.Appointments.OrderBy(a => a.Date).ToListAsync();
     var bytes = CsvExportService.BuildAppointmentsCsv(all);
     return Results.File(bytes, "text/csv", $"afspraken-{DateTime.UtcNow:yyyyMMdd}.csv");
+});
+
+// Photos live under DATA_DIR/uploads (outside wwwroot, never served by
+// UseStaticFiles) with random GUID filenames. This is the only way to read
+// one back, and it's admin-only (see RequireAuthorization() on the group
+// above): the filename must exactly match one already recorded against
+// this appointment's PhotoFileNames, which also rules out path traversal.
+admin.MapGet("/appointments/{id:int}/photos/{filename}", async (int id, string filename, AppDbContext db) =>
+{
+    var a = await db.Appointments.FindAsync(id);
+    if (a is null) return Results.NotFound();
+
+    var photoNames = (a.PhotoFileNames ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries);
+    if (!photoNames.Contains(filename)) return Results.NotFound();
+
+    var path = Path.Combine(dataDir, "uploads", a.ManageToken.ToString(), filename);
+    if (!File.Exists(path)) return Results.NotFound();
+
+    var contentType = Path.GetExtension(filename).ToLowerInvariant() switch
+    {
+        ".jpg" or ".jpeg" => "image/jpeg",
+        ".png" => "image/png",
+        ".webp" => "image/webp",
+        _ => "application/octet-stream"
+    };
+    return Results.File(path, contentType);
 });
 
 // TEMP DEBUG: confirm the Brevo environment variables actually made it into

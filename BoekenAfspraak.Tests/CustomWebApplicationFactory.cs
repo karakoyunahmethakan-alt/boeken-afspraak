@@ -29,6 +29,13 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     public const string AdminPassword = "Test-Wachtwoord-123!";
     public const string OwnerEmail = "owner@test.local";
 
+    // High by default so ordinary functional tests (which book many
+    // appointments from what looks like a single client IP under the
+    // in-memory TestServer) never trip the booking rate limiter.
+    // RateLimitTests overrides this down to the real production value to
+    // exercise the actual limiting behavior in isolation.
+    protected virtual int BookingRateLimitPermitLimit => 1000;
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         Directory.CreateDirectory(DataDir);
@@ -44,6 +51,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         builder.UseSetting("Brevo:ApiKey", "test-key-niet-echt");
         builder.UseSetting("Brevo:SenderEmail", OwnerEmail);
         builder.UseSetting("Brevo:SenderName", "Boeken ophalen (test)");
+        builder.UseSetting("RateLimit:BookingPermitLimit", BookingRateLimitPermitLimit.ToString());
+        builder.UseSetting("RateLimit:BookingWindowMinutes", "10");
 
         builder.ConfigureServices(services =>
         {

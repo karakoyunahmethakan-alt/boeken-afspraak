@@ -114,7 +114,8 @@ app.MapGet("/api/config", () => Results.Ok(new
 {
     slotTimes = appOpts.SlotTimes,
     minBooks = appOpts.MinBooks,
-    daysAhead = appOpts.DaysAhead
+    daysAhead = appOpts.DaysAhead,
+    ownerEmail = appOpts.OwnerEmail
 }));
 
 app.MapGet("/api/availability", async (string date, AppDbContext db) =>

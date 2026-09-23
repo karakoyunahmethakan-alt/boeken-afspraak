@@ -4,15 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Boeken ophalen — afspraak maken</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/images/apple-touch-icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/style.css?v=20260923">
+<link rel="stylesheet" href="/style.css?v=20260923-2">
 </head>
 <body>
 
 <div class="hero">
   <div class="hero-inner">
+    <img class="hero-logo" src="/images/logo-full.png" alt="BoekenCirkel">
     <h1>Geef uw boeken een nieuw hoofdstuk</h1>
     <p>Ik koop tweedehands boeken op bij mensen in de buurt. Heeft u er minimaal <span id="hero-min">10</span> staan? Kies hieronder een moment en ik kom langs.</p>
     <div class="rule">Prijsindicatie meteen zichtbaar — definitieve prijs bepalen we samen ter plekke</div>
@@ -20,9 +23,20 @@
 </div>
 
 <main>
+  <div class="intro">
+    <h2>Geef uw oude boeken een tweede leven.</h2>
+    <p>Wij halen ze gratis bij u op en zorgen dat ze weer gelezen worden.</p>
+  </div>
+
   <div class="card">
     <h2>Gegevens</h2>
     <p class="section-note">Dit wordt rechtstreeks doorgestuurd. U ontvangt direct een bevestiging per e-mail met een link om te wijzigen of te annuleren.</p>
+
+    <div class="alt-contact">
+      Lukt het invullen van dit formulier niet? Geen probleem — stuur ons gewoon een e-mail naar
+      <a id="owner-email-link" href="#">...</a> met uw naam, adres en de dagen/tijden dat u thuis bent.
+      Dat is voldoende, wij nemen dan contact met u op.
+    </div>
 
     <div class="field" id="f-naam">
       <label for="naam">Naam</label>

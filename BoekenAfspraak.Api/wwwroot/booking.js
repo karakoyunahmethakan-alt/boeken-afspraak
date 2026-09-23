@@ -20,6 +20,12 @@
     document.getElementById("min-hint").textContent = "(minimaal " + CONFIG.minBooks + ")";
     document.getElementById("aantal").min = CONFIG.minBooks;
 
+    const ownerEmailLink = document.getElementById("owner-email-link");
+    if (ownerEmailLink && CONFIG.ownerEmail) {
+      ownerEmailLink.textContent = CONFIG.ownerEmail;
+      ownerEmailLink.href = "mailto:" + CONFIG.ownerEmail;
+    }
+
     const base = new Date(); base.setHours(0,0,0,0);
     days = [];
     for (let i = 0; i < CONFIG.daysAhead; i++) {

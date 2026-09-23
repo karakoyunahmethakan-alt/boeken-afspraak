@@ -3,18 +3,21 @@
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 
-  --forest: #1F6F64;
-  --forest-deep: #134A42;
+  --forest: #0C6C6E;
+  --forest-deep: #084F50;
   --paper: #F5EFE1;
   --paper-dim: #EAE2CC;
   --ink: #23271C;
   --ink-soft: #56604C;
-  --mustard: #D4A72C;
-  --mustard-deep: #A8841F;
+  --mustard: #D6A24C;
+  --mustard-deep: #B37F2E;
   --line: #DCD1AE;
   --taken: #C9C0A6;
   --error: #A23E2E;
   --ok: #3F6B4A;
+  --bg-turquoise: #EAF7F5;
+  --bg-turquoise-soft: #D7F0EC;
+  --cream: #FBF8F2;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -36,23 +39,58 @@
 }
 
 * { box-sizing: border-box; }
-html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+html {
+  scroll-padding-top: env(safe-area-inset-top, 0px);
+  font-size: 19px;
+  background: var(--paper);
+}
 html, body {
   margin: 0;
-  background: var(--paper);
   color: var(--ink);
   font-family: 'Public Sans', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+  line-height: 1.55;
 }
-body { min-height: 100%; }
+body {
+  min-height: 100%;
+  font-size: 1rem;
+  position: relative;
+  background: linear-gradient(160deg, var(--bg-turquoise) 0%, var(--cream) 55%, var(--bg-turquoise-soft) 100%);
+  background-attachment: fixed;
+}
+
+/* Large, very faint logo watermark, fixed in the bottom-right corner.
+   z-index:0 keeps it behind all real content (.hero/main/footer are
+   lifted to z-index:1 below). */
+body::before {
+  content: "";
+  position: fixed;
+  right: -120px;
+  bottom: -100px;
+  width: 800px;
+  height: 800px;
+  background: url('/images/logo-icon.png') no-repeat center/contain;
+  opacity: 0.08;
+  pointer-events: none;
+  z-index: 0;
+}
 
 .hero {
+  position: relative;
+  z-index: 1;
   background: linear-gradient(160deg, var(--forest) 0%, var(--forest-deep) 100%);
   color: #F3EEDD;
   padding: 44px 24px 40px;
   padding-top: calc(44px + env(safe-area-inset-top, 0px));
 }
 .hero-inner { max-width: 460px; margin: 0 auto; }
+.hero-logo {
+  display: block;
+  max-width: 260px;
+  width: 100%;
+  height: auto;
+  margin: 0 auto 20px;
+}
 .hero h1 {
   font-family: 'Fraunces', Georgia, serif;
   font-optical-sizing: auto;
@@ -84,12 +122,42 @@ body { min-height: 100%; }
 }
 
 main {
+  position: relative;
+  z-index: 1;
   max-width: 460px;
   margin: -22px auto 0;
   padding: 0 24px 60px;
 }
 
+.intro {
+  text-align: center;
+  margin: 0 0 20px;
+}
+.intro h2 {
+  font-size: 1.45rem;
+  margin: 0 0 8px;
+}
+.intro p {
+  color: var(--ink-soft);
+  font-size: 1.05rem;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.alt-contact {
+  background: var(--bg-turquoise-soft);
+  border: 2px solid var(--mustard);
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-size: 1rem;
+  line-height: 1.55;
+  margin-bottom: 20px;
+}
+.alt-contact a { color: var(--forest-deep); font-weight: 600; }
+
 .card {
+  position: relative;
+  z-index: 1;
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -100,7 +168,7 @@ main {
 h2 {
   font-family: 'Fraunces', Georgia, serif;
   font-weight: 500;
-  font-size: 19px;
+  font-size: 1.25rem;
   margin: 0 0 4px;
 }
 .section-note {
@@ -110,28 +178,28 @@ h2 {
   line-height: 1.5;
 }
 
-.field { margin-bottom: 16px; }
+.field { margin-bottom: 18px; }
 .field label {
   display: block;
-  font-size: 13px;
+  font-size: 1.1rem;
   font-weight: 600;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 .field .hint {
   font-weight: 400;
   color: var(--ink-soft);
-  font-size: 12.5px;
+  font-size: 0.75rem;
 }
 input[type="text"], input[type="tel"], input[type="email"], input[type="number"],
 input[type="password"], input[type="file"], textarea, select {
   width: 100%;
-  padding: 11px 12px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
+  padding: 14px 16px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
   background: var(--paper-dim);
   color: var(--ink);
   font-family: inherit;
-  font-size: 15px;
+  font-size: 1.15rem;
 }
 input:focus, textarea:focus, button:focus-visible, select:focus {
   outline: 2px solid var(--mustard);
@@ -187,12 +255,16 @@ input:focus, textarea:focus, button:focus-visible, select:focus {
 .slots { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 6px; }
 .slot {
   padding: 10px 8px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 6px;
   border: 1px solid var(--line);
   background: var(--paper-dim);
   color: var(--ink);
   font-family: inherit;
-  font-size: 14.5px;
+  font-size: 1.05rem;
   font-weight: 500;
   cursor: pointer;
   text-align: center;
@@ -207,13 +279,13 @@ input:focus, textarea:focus, button:focus-visible, select:focus {
 .submit-btn {
   width: 100%;
   margin-top: 8px;
-  padding: 14px 16px;
+  padding: 16px 28px;
   border: none;
   border-radius: 7px;
   background: var(--forest);
   color: #F3EEDD;
   font-family: inherit;
-  font-size: 15.5px;
+  font-size: 1.2rem;
   font-weight: 600;
   cursor: pointer;
 }
@@ -244,6 +316,8 @@ input:focus, textarea:focus, button:focus-visible, select:focus {
 }
 
 footer {
+  position: relative;
+  z-index: 1;
   max-width: 460px;
   margin: 20px auto 0;
   padding: 0 24px;

@@ -22,6 +22,10 @@ public class AppOptions
 
     public string OwnerEmail { get; set; } = "";
     public string PublicBaseUrl { get; set; } = "http://localhost:5000";
+
+    // AVG/GDPR: aantal dagen dat afgeronde (verlopen of geannuleerde)
+    // afspraken bewaard blijven voordat DataRetentionService ze verwijdert.
+    public int DataRetentionDays { get; set; } = 90;
 }
 
 public class BrevoOptions

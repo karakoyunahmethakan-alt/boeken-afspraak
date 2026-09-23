@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Privacybeleid</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/images/apple-touch-icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css?v=20260923-4">
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-inner">
+    <img class="hero-logo" src="/images/logo-full.png" alt="BoekenCirkel">
+    <h1>Privacybeleid</h1>
+    <p>Hoe wij omgaan met de gegevens die u bij een afspraak achterlaat.</p>
+  </div>
+</div>
+
+<main>
+  <div class="card">
+    <h2>Welke gegevens verzamelen wij?</h2>
+    <p class="section-note">
+      Bij het aanvragen van een afspraak vragen wij uw naam, adres en e-mailadres.
+      Optioneel kunt u een telefoonnummer opgeven, het aantal en soort boeken, en
+      foto's van de boeken.
+    </p>
+
+    <h2>Waarom verzamelen wij deze gegevens?</h2>
+    <p class="section-note">
+      Uitsluitend om het ophalen van uw boeken te plannen: om contact met u op te
+      nemen, de afspraak te bevestigen en, indien nodig, te wijzigen of te annuleren.
+    </p>
+
+    <h2>Delen met derden</h2>
+    <p class="section-note">
+      Uw gegevens worden niet gedeeld met derden.
+    </p>
+
+    <h2>Bewaartermijn</h2>
+    <p class="section-note">
+      Gegevens worden automatisch verwijderd 90 dagen na de afspraakdatum of
+      annulering.
+    </p>
+
+    <h2>Gegevens laten verwijderen</h2>
+    <p class="section-note">
+      Wilt u dat uw gegevens eerder worden verwijderd, of heeft u een andere vraag
+      over uw gegevens? Stuur een e-mail naar
+      <a id="owner-email-link" href="#">...</a>.
+    </p>
+  </div>
+
+  <footer>
+    Reactie meestal binnen 24 uur.
+  </footer>
+</main>
+
+<script>
+fetch('/api/config').then(r => r.ok ? r.json() : null).then(cfg => {
+  var email = cfg && cfg.ownerEmail;
+  var link = document.getElementById('owner-email-link');
+  if (email && link) {
+    link.href = 'mailto:' + email;
+    link.textContent = email;
+  }
+}).catch(() => {});
+</script>
+</body>
+</html>

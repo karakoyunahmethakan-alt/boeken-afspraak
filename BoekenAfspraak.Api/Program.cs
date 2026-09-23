@@ -17,6 +17,7 @@ var dataDir = Environment.GetEnvironmentVariable("DATA_DIR")
               ?? Path.Combine(builder.Environment.ContentRootPath, "App_Data");
 Directory.CreateDirectory(dataDir);
 Directory.CreateDirectory(Path.Combine(dataDir, "uploads"));
+builder.Services.AddSingleton(new DataDirectory(dataDir));
 
 builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("App"));
 builder.Services.Configure<BrevoOptions>(builder.Configuration.GetSection("Brevo"));
@@ -46,6 +47,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddSingleton<PricingService>();
 builder.Services.AddHttpClient<EmailService>();
 builder.Services.AddSingleton<JwtTokenService>();
+builder.Services.AddHostedService<DataRetentionService>();
 
 var jwtSigningKey = builder.Configuration["Jwt:SigningKey"];
 if (string.IsNullOrWhiteSpace(jwtSigningKey))

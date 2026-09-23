@@ -114,11 +114,15 @@ public class EmailService
             }
             message.Body = builder.ToMessageBody();
 
+            // Bound the whole SMTP round-trip so a stuck/blocked outgoing
+            // connection (seen on some Railway networks) can't hang this
+            // background task forever — it just times out, logs, and gives up.
+            using var connectCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             using var client = new SmtpClient();
-            await client.ConnectAsync(_smtp.Host, _smtp.Port, MailKit.Security.SecureSocketOptions.StartTls);
-            await client.AuthenticateAsync(_smtp.User, _smtp.Password);
-            await client.SendAsync(message);
-            await client.DisconnectAsync(true);
+            await client.ConnectAsync(_smtp.Host, _smtp.Port, MailKit.Security.SecureSocketOptions.StartTls, connectCts.Token);
+            await client.AuthenticateAsync(_smtp.User, _smtp.Password, connectCts.Token);
+            await client.SendAsync(message, connectCts.Token);
+            await client.DisconnectAsync(true, connectCts.Token);
         }
         catch (Exception ex)
         {

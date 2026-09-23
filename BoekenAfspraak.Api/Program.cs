@@ -182,8 +182,24 @@ app.MapPost("/api/appointments", async (
         $"{appointment.BookCount} boeken, {appointment.Address}. Contact: {appointment.Phone ?? appointment.Email}",
         appointment.Date, appointment.TimeSlot, tz, durationMinutes: 12, status: "CONFIRMED", sequence: 0);
 
-    await email.SendOwnerNotificationAsync(appointment, ics, "afspraak.ics");
-    await email.SendCustomerConfirmationAsync(appointment, manageUrl);
+    // Fire-and-forget: SMTP on Railway can be slow/blocked, and the customer
+    // shouldn't have to wait for two outgoing emails before the booking
+    // confirms. EmailService already swallows its own send failures (logged
+    // there); this try/catch is just defense in depth for anything else
+    // that might escape it.
+    var appointmentIdForLog = appointment.Id;
+    _ = Task.Run(async () =>
+    {
+        try
+        {
+            await email.SendOwnerNotificationAsync(appointment, ics, "afspraak.ics");
+            await email.SendCustomerConfirmationAsync(appointment, manageUrl);
+        }
+        catch (Exception ex)
+        {
+            app.Logger.LogError(ex, "Achtergrond e-mailverzending voor afspraak {Id} is mislukt.", appointmentIdForLog);
+        }
+    });
 
     return Results.Created($"/api/appointments/manage/{appointment.ManageToken}",
         new AppointmentResultDto(appointment.ManageToken, appointment.Date.ToString("yyyy-MM-dd"), appointment.TimeSlot,
@@ -251,8 +267,19 @@ app.MapPost("/api/appointments/manage/{token:guid}/cancel", async (Guid token, A
     await db.SaveChangesAsync();
 
     var ics = IcsBuilder.Build(a.ManageToken, $"Boeken ophalen — {a.Name}", "Geannuleerd", a.Date, a.TimeSlot, tz, 12, "CANCELLED", sequence: 1);
-    await email.SendOwnerNotificationAsync(a, ics, "afspraak-geannuleerd.ics");
-    await email.SendCustomerUpdateAsync(a, "", "cancelled");
+    var appointmentIdForLog = a.Id;
+    _ = Task.Run(async () =>
+    {
+        try
+        {
+            await email.SendOwnerNotificationAsync(a, ics, "afspraak-geannuleerd.ics");
+            await email.SendCustomerUpdateAsync(a, "", "cancelled");
+        }
+        catch (Exception ex)
+        {
+            app.Logger.LogError(ex, "Achtergrond e-mailverzending voor annulering van afspraak {Id} is mislukt.", appointmentIdForLog);
+        }
+    });
 
     return Results.Ok(new { cancelled = true });
 });
@@ -285,8 +312,19 @@ app.MapPost("/api/appointments/manage/{token:guid}/reschedule", async (Guid toke
 
     var manageUrl = $"{appOpts.PublicBaseUrl.TrimEnd('/')}/beheer.html?token={a.ManageToken}";
     var ics = IcsBuilder.Build(a.ManageToken, $"Boeken ophalen — {a.Name}", "Verzet naar nieuw tijdstip", a.Date, a.TimeSlot, tz, 12, "CONFIRMED", sequence: a.RescheduleCount);
-    await email.SendOwnerNotificationAsync(a, ics, "afspraak-gewijzigd.ics");
-    await email.SendCustomerUpdateAsync(a, manageUrl, "rescheduled");
+    var appointmentIdForLog = a.Id;
+    _ = Task.Run(async () =>
+    {
+        try
+        {
+            await email.SendOwnerNotificationAsync(a, ics, "afspraak-gewijzigd.ics");
+            await email.SendCustomerUpdateAsync(a, manageUrl, "rescheduled");
+        }
+        catch (Exception ex)
+        {
+            app.Logger.LogError(ex, "Achtergrond e-mailverzending voor verzetten van afspraak {Id} is mislukt.", appointmentIdForLog);
+        }
+    });
 
     return Results.Ok(new { rescheduled = true, date = a.Date.ToString("yyyy-MM-dd"), a.TimeSlot });
 });
@@ -331,8 +369,19 @@ admin.MapPost("/appointments/{id:int}/cancel", async (int id, AppDbContext db, E
     await db.SaveChangesAsync();
 
     var ics = IcsBuilder.Build(a.ManageToken, $"Boeken ophalen — {a.Name}", "Geannuleerd door beheerder", a.Date, a.TimeSlot, tz, 12, "CANCELLED", sequence: 1);
-    await email.SendOwnerNotificationAsync(a, ics, "afspraak-geannuleerd.ics");
-    await email.SendCustomerUpdateAsync(a, "", "cancelled");
+    var appointmentIdForLog = a.Id;
+    _ = Task.Run(async () =>
+    {
+        try
+        {
+            await email.SendOwnerNotificationAsync(a, ics, "afspraak-geannuleerd.ics");
+            await email.SendCustomerUpdateAsync(a, "", "cancelled");
+        }
+        catch (Exception ex)
+        {
+            app.Logger.LogError(ex, "Achtergrond e-mailverzending voor annulering (admin) van afspraak {Id} is mislukt.", appointmentIdForLog);
+        }
+    });
 
     return Results.Ok(new { cancelled = true });
 });

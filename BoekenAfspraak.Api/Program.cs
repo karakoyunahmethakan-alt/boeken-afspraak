@@ -19,20 +19,19 @@ Directory.CreateDirectory(dataDir);
 Directory.CreateDirectory(Path.Combine(dataDir, "uploads"));
 
 builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("App"));
-builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("Smtp"));
+builder.Services.Configure<BrevoOptions>(builder.Configuration.GetSection("Brevo"));
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 
 // Railway's Raw Editor can leave stray quotes/whitespace around a pasted
-// value, which silently breaks SMTP auth (wrong user/password) without any
-// obvious error. Strip them right after binding so every consumer of these
-// options gets clean values.
+// value, which silently breaks API auth without any obvious error. Strip
+// them right after binding so every consumer of these options gets clean
+// values.
 static string CleanConfigValue(string value) => value.Trim('"', ' ');
-builder.Services.PostConfigure<SmtpOptions>(o =>
+builder.Services.PostConfigure<BrevoOptions>(o =>
 {
-    o.Host = CleanConfigValue(o.Host);
-    o.User = CleanConfigValue(o.User);
-    o.Password = CleanConfigValue(o.Password);
-    o.FromName = CleanConfigValue(o.FromName);
+    o.ApiKey = CleanConfigValue(o.ApiKey);
+    o.SenderEmail = CleanConfigValue(o.SenderEmail);
+    o.SenderName = CleanConfigValue(o.SenderName);
 });
 builder.Services.PostConfigure<AppOptions>(o =>
 {
@@ -45,7 +44,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite($"Data Source={Path.Combine(dataDir, "afspraken.db")}"));
 
 builder.Services.AddSingleton<PricingService>();
-builder.Services.AddSingleton<EmailService>();
+builder.Services.AddHttpClient<EmailService>();
 builder.Services.AddSingleton<JwtTokenService>();
 
 var jwtSigningKey = builder.Configuration["Jwt:SigningKey"];
@@ -393,13 +392,12 @@ admin.MapGet("/appointments/export.csv", async (AppDbContext db) =>
     return Results.File(bytes, "text/csv", $"afspraken-{DateTime.UtcNow:yyyyMMdd}.csv");
 });
 
-// TEMP DEBUG: confirm the SMTP environment variables actually made it into
-// the app's configuration (Password is deliberately never logged).
-var smtpOpts = app.Services.GetRequiredService<IOptions<SmtpOptions>>().Value;
+// TEMP DEBUG: confirm the Brevo environment variables actually made it into
+// the app's configuration (ApiKey itself is deliberately never logged).
+var brevoOpts = app.Services.GetRequiredService<IOptions<BrevoOptions>>().Value;
 app.Logger.LogInformation(
-    "SMTP config check — Host: {HostStatus}, Port: {Port}, User: {UserStatus}",
-    string.IsNullOrWhiteSpace(smtpOpts.Host) ? "LEEG" : smtpOpts.Host,
-    smtpOpts.Port,
-    string.IsNullOrWhiteSpace(smtpOpts.User) ? "LEEG" : smtpOpts.User);
+    "Brevo config check — ApiKey: {ApiKeyStatus}, SenderEmail: {SenderEmailStatus}",
+    string.IsNullOrWhiteSpace(brevoOpts.ApiKey) ? "LEEG" : "OK",
+    string.IsNullOrWhiteSpace(brevoOpts.SenderEmail) ? "LEEG" : brevoOpts.SenderEmail);
 
 app.Run();

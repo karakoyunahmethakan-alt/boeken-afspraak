@@ -31,20 +31,21 @@ Open `http://localhost:5000`. De SQLite-database komt in `App_Data/afspraken.db`
 | `Jwt__SigningKey` | Lange willekeurige string voor het ondertekenen van admin-login-tokens. **Verplicht**, de app start niet zonder. |
 | `App__OwnerEmail` | Jouw e-mailadres — hier komen nieuwe-afspraak-meldingen binnen. |
 | `App__PublicBaseUrl` | De publieke URL van de site (zonder trailing slash), bv. `https://boeken.up.railway.app`. Wordt gebruikt in de links die naar klanten gaan. |
-| `Smtp__Host`, `Smtp__Port`, `Smtp__User`, `Smtp__Password` | SMTP-gegevens om mail te versturen (zie hieronder voor Gmail). |
+| `Brevo__ApiKey` | API-sleutel van je Brevo-account (zie hieronder). |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Alleen nodig bij de allereerste start om het admin-account aan te maken. |
 
-(Let op de dubbele underscore `__` — dat is hoe ASP.NET Core geneste config-secties uit environment variables leest, bv. `Smtp__Host`.)
+(Let op de dubbele underscore `__` — dat is hoe ASP.NET Core geneste config-secties uit environment variables leest, bv. `Brevo__ApiKey`.)
 
-## Gmail SMTP instellen
+## Brevo instellen (transactionele e-mail)
 
-1. Zorg dat 2-stapsverificatie aan staat op het Gmail-account.
-2. Ga naar [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords) en maak een **App-wachtwoord** aan.
-3. Zet:
-   - `Smtp__Host` = `smtp.gmail.com`
-   - `Smtp__Port` = `587`
-   - `Smtp__User` = jouw Gmail-adres
-   - `Smtp__Password` = het gegenereerde app-wachtwoord (niet je gewone wachtwoord)
+E-mail gaat via Brevo's HTTP API (`https://api.brevo.com/v3/smtp/email`) in plaats van SMTP — Railway blokkeert uitgaande SMTP-verbindingen (poort 587), maar gewoon HTTPS-verkeer (poort 443) werkt wel.
+
+1. Maak een gratis account aan op [brevo.com](https://www.brevo.com) (voorheen Sendinblue).
+2. Ga naar **SMTP & API** in je accountinstellingen en maak een **API key** aan (geen SMTP-key, de "API key" onder het tabblad "API Keys").
+3. Verifieer het afzenderadres dat je gaat gebruiken (Brevo dashboard → **Senders** → voeg je e-mailadres toe en bevestig via de verificatiemail).
+4. Zet:
+   - `Brevo__ApiKey` = de aangemaakte API key
+   - `App__OwnerEmail`, en `Brevo:SenderEmail`/`Brevo:SenderName` in `appsettings.json` indien je een ander afzenderadres wilt dan de standaardwaarde.
 
 ## Prijsindicatie
 

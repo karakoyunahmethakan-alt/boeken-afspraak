@@ -1,19 +1,29 @@
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
-using MimeKit;
-using MailKit.Net.Smtp;
 using BoekenAfspraak.Api.Models;
 
 namespace BoekenAfspraak.Api.Services;
 
+// Sends transactional email via Brevo's HTTP API (https://api.brevo.com/v3/smtp/email)
+// instead of MailKit/SMTP. Railway blocks outgoing SMTP (port 587), which made
+// SmtpClient.ConnectAsync hang and time out; Brevo's API runs over plain HTTPS
+// (port 443), which isn't affected by that block.
 public class EmailService
 {
-    private readonly SmtpOptions _smtp;
+    private static readonly Uri BrevoSendEndpoint = new("https://api.brevo.com/v3/smtp/email");
+
+    private readonly HttpClient _http;
+    private readonly BrevoOptions _brevo;
     private readonly AppOptions _app;
     private readonly ILogger<EmailService> _logger;
 
-    public EmailService(IOptions<SmtpOptions> smtp, IOptions<AppOptions> app, ILogger<EmailService> logger)
+    public EmailService(HttpClient http, IOptions<BrevoOptions> brevo, IOptions<AppOptions> app, ILogger<EmailService> logger)
     {
-        _smtp = smtp.Value;
+        _http = http;
+        _brevo = brevo.Value;
         _app = app.Value;
         _logger = logger;
     }
@@ -89,40 +99,57 @@ public class EmailService
 
     private async Task SendAsync(string to, string subject, string body, string? icsContent = null, string? icsFileName = null)
     {
-        if (string.IsNullOrWhiteSpace(_smtp.Host))
+        if (string.IsNullOrWhiteSpace(_brevo.ApiKey))
         {
-            _logger.LogWarning("SMTP not configured — skipping email to {To} ({Subject})", to, subject);
+            _logger.LogWarning("Brevo not configured — skipping email to {To} ({Subject})", to, subject);
             return;
         }
 
         try
         {
-            var message = new MimeMessage();
-            message.From.Add(new MailboxAddress(_smtp.FromName, _smtp.User));
-            message.To.Add(MailboxAddress.Parse(to));
-            message.Subject = subject;
-
-            var builder = new BodyBuilder { TextBody = body };
+            List<BrevoAttachment>? attachments = null;
             if (icsContent is not null)
             {
-                var icsContentType = new ContentType("text", "calendar");
-                icsContentType.Parameters.Add("method", "PUBLISH");
-                icsContentType.Parameters.Add("charset", "UTF-8");
-                builder.Attachments.Add(icsFileName ?? "afspraak.ics",
-                    System.Text.Encoding.UTF8.GetBytes(icsContent),
-                    icsContentType);
+                attachments = new List<BrevoAttachment>
+                {
+                    new BrevoAttachment(
+                        Content: Convert.ToBase64String(Encoding.UTF8.GetBytes(icsContent)),
+                        Name: icsFileName ?? "afspraak.ics")
+                };
             }
-            message.Body = builder.ToMessageBody();
 
-            // Bound the whole SMTP round-trip so a stuck/blocked outgoing
-            // connection (seen on some Railway networks) can't hang this
-            // background task forever — it just times out, logs, and gives up.
-            using var connectCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-            using var client = new SmtpClient();
-            await client.ConnectAsync(_smtp.Host, _smtp.Port, MailKit.Security.SecureSocketOptions.StartTls, connectCts.Token);
-            await client.AuthenticateAsync(_smtp.User, _smtp.Password, connectCts.Token);
-            await client.SendAsync(message, connectCts.Token);
-            await client.DisconnectAsync(true, connectCts.Token);
+            var payload = new BrevoSendRequest(
+                Sender: new BrevoSender(_brevo.SenderName, _brevo.SenderEmail),
+                To: new List<BrevoRecipient> { new(to) },
+                Subject: subject,
+                TextContent: body,
+                Attachment: attachments);
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, BrevoSendEndpoint);
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            request.Headers.Add("api-key", _brevo.ApiKey);
+            request.Content = new StringContent(
+                JsonSerializer.Serialize(payload, JsonOptions),
+                Encoding.UTF8,
+                "application/json");
+
+            // Bound the whole HTTP round-trip so a stuck outgoing connection
+            // can't hang this background task forever — it just times out,
+            // logs, and gives up.
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            using var response = await _http.SendAsync(request, cts.Token);
+            var responseBody = await response.Content.ReadAsStringAsync(cts.Token);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var brevoMessage = TryExtractBrevoErrorMessage(responseBody);
+                _logger.LogError(
+                    "Brevo e-mail naar {To} ({Subject}) mislukt met status {Status}: {Message}. Raw response: {Body}",
+                    to, subject, (int)response.StatusCode, brevoMessage ?? "(geen message-veld)", responseBody);
+                Console.WriteLine(
+                    $"[EmailService] Brevo send to {to} ({subject}) failed with status {(int)response.StatusCode}: " +
+                    $"{brevoMessage ?? "(no message field)"}. Raw response: {responseBody}");
+            }
         }
         catch (Exception ex)
         {
@@ -135,4 +162,39 @@ public class EmailService
             Console.WriteLine($"[EmailService] Failed to send email to {to} ({subject}): {ex}");
         }
     }
+
+    private static string? TryExtractBrevoErrorMessage(string responseBody)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(responseBody);
+            return doc.RootElement.TryGetProperty("message", out var msg) ? msg.GetString() : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
+
+    private record BrevoSendRequest(
+        [property: JsonPropertyName("sender")] BrevoSender Sender,
+        [property: JsonPropertyName("to")] List<BrevoRecipient> To,
+        [property: JsonPropertyName("subject")] string Subject,
+        [property: JsonPropertyName("textContent")] string TextContent,
+        [property: JsonPropertyName("attachment")] List<BrevoAttachment>? Attachment);
+
+    private record BrevoSender(
+        [property: JsonPropertyName("name")] string Name,
+        [property: JsonPropertyName("email")] string Email);
+
+    private record BrevoRecipient([property: JsonPropertyName("email")] string Email);
+
+    private record BrevoAttachment(
+        [property: JsonPropertyName("content")] string Content,
+        [property: JsonPropertyName("name")] string Name);
 }

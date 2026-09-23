@@ -24,13 +24,11 @@ public class AppOptions
     public string PublicBaseUrl { get; set; } = "http://localhost:5000";
 }
 
-public class SmtpOptions
+public class BrevoOptions
 {
-    public string Host { get; set; } = "";
-    public int Port { get; set; } = 587;
-    public string User { get; set; } = "";
-    public string Password { get; set; } = "";
-    public string FromName { get; set; } = "Boeken ophalen";
+    public string ApiKey { get; set; } = "";
+    public string SenderEmail { get; set; } = "";
+    public string SenderName { get; set; } = "Boeken ophalen";
 }
 
 public class JwtOptions

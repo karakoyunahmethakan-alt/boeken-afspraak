@@ -3,14 +3,14 @@
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 
-  --forest: #1F4A45;
-  --forest-deep: #163732;
+  --forest: #1F6F64;
+  --forest-deep: #134A42;
   --paper: #F5EFE1;
   --paper-dim: #EAE2CC;
   --ink: #23271C;
   --ink-soft: #56604C;
-  --mustard: #C9A227;
-  --mustard-deep: #A8871C;
+  --mustard: #D4A72C;
+  --mustard-deep: #A8841F;
   --line: #DCD1AE;
   --taken: #C9C0A6;
   --error: #A23E2E;

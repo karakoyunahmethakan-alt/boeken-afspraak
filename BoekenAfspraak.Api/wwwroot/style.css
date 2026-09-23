@@ -5,14 +5,14 @@
 
   --forest: #0C6C6E;
   --forest-deep: #084F50;
-  --paper: #F5EFE1;
-  --paper-dim: #EAE2CC;
+  --paper: #FFFFFF;
+  --paper-dim: #F2F8F7;
   --ink: #23271C;
   --ink-soft: #56604C;
   --mustard: #D6A24C;
   --mustard-deep: #B37F2E;
-  --line: #DCD1AE;
-  --taken: #C9C0A6;
+  --line: #D7E8E5;
+  --taken: #C7DAD6;
   --error: #A23E2E;
   --ok: #3F6B4A;
   --bg-turquoise: #EAF7F5;
@@ -269,7 +269,7 @@ input:focus, textarea:focus, button:focus-visible, select:focus {
   cursor: pointer;
   text-align: center;
 }
-.slot.active { background: var(--mustard); border-color: var(--mustard-deep); color: #2A1B04; }
+.slot.active { background: var(--mustard); border-color: var(--mustard-deep); color: #FFFFFF; }
 .slot[disabled] {
   background: transparent; color: var(--taken); border-color: var(--line);
   text-decoration: line-through; cursor: not-allowed;

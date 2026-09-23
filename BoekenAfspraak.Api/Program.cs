@@ -142,6 +142,8 @@ app.MapPost("/api/appointments", async (
 {
     if (string.IsNullOrWhiteSpace(req.Name) || string.IsNullOrWhiteSpace(req.Address) || string.IsNullOrWhiteSpace(req.Email))
         return Results.BadRequest(new { error = "Naam, adres en e-mail zijn verplicht." });
+    if (!System.Text.RegularExpressions.Regex.IsMatch(req.Email, @"^\S+@\S+\.\S+$"))
+        return Results.BadRequest(new { error = "Vul een geldig e-mailadres in." });
     if (req.BookCount < appOpts.MinBooks)
         return Results.BadRequest(new { error = $"Minimaal {appOpts.MinBooks} boeken vereist." });
     if (!appOpts.SlotTimes.Contains(req.TimeSlot))
@@ -402,3 +404,6 @@ app.Logger.LogInformation(
     string.IsNullOrWhiteSpace(brevoOpts.SenderEmail) ? "LEEG" : brevoOpts.SenderEmail);
 
 app.Run();
+
+// Exposes the top-level Program for WebApplicationFactory<Program> in integration tests.
+public partial class Program { }

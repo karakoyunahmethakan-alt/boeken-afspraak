@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BoekenAfspraak.Api", "BoekenAfspraak.Api\BoekenAfspraak.Api.csproj", "{19B3CDAF-1089-4BA7-A5FE-EECEE80D431C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BoekenAfspraak.Tests", "BoekenAfspraak.Tests\BoekenAfspraak.Tests.csproj", "{1F4C7C7B-C19B-4B22-99E7-83F0397D7293}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{19B3CDAF-1089-4BA7-A5FE-EECEE80D431C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{19B3CDAF-1089-4BA7-A5FE-EECEE80D431C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{19B3CDAF-1089-4BA7-A5FE-EECEE80D431C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{19B3CDAF-1089-4BA7-A5FE-EECEE80D431C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1F4C7C7B-C19B-4B22-99E7-83F0397D7293}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1F4C7C7B-C19B-4B22-99E7-83F0397D7293}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1F4C7C7B-C19B-4B22-99E7-83F0397D7293}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1F4C7C7B-C19B-4B22-99E7-83F0397D7293}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
